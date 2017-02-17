@@ -101,9 +101,8 @@ void vlad_init(u_int32_t size)
 //                      for a newly-allocated region of some size >= 
 //                      n + header size.
 
-void *vlad_malloc(u_int32_t n)
-{
-   // TODO for Milestone 2
+void *vlad_malloc(u_int32_t n) {
+   
    byte *bestPtr = &memory[free_list_ptr];
    free_header_t * freemem = (free_header_t*)bestPtr;
    u_int32_t bestFit;
@@ -112,7 +111,6 @@ void *vlad_malloc(u_int32_t n)
    if (n < MIN_REQUEST) n = MIN_REQUEST;
    u_int32_t actual_size = determine_size(n);
    u_int32_t threshold = actual_size + 2*FREE_HEADER_SIZE;
-   //printf("actual_size = %d\n",actual_size );
 
    if (actual_size < memory_size) {   
       // search through free headers and find a block which is both
@@ -210,8 +208,8 @@ void *vlad_malloc(u_int32_t n)
    return ((void*)(bestPtr + ALLOC_HEADER_SIZE));
 }
 
-void vlad_free(void *object)
-{
+void vlad_free(void *object) {
+   
    vsize_t i=0; vsize_t j=0;
    char a= FALSE;
    free_header_t * temp; free_header_t * new_free;
@@ -277,7 +275,8 @@ void vlad_free(void *object)
    if (i < free_list_ptr) free_list_ptr = i;
    change_free_header((free_header_t*)(&memory[i]),
       test->size,next,prev);
-
+   
+   // call merge to merge any small segments
    vlad_merge();
 }
 
@@ -287,8 +286,8 @@ void vlad_free(void *object)
 //            there should be no region in the free list whose next
 //            reference is to a location just past the end of the region
 
-static void vlad_merge()
-{
+static void vlad_merge() {
+   
    free_header_t * start = (free_header_t *)&memory[free_list_ptr];
    free_header_t * temp = start;
    free_header_t * i = (free_header_t *)&memory[start->next];
@@ -305,7 +304,7 @@ static void vlad_merge()
    while (determine_index(i)!=free_list_ptr) {
 
       if ((byte*)temp+temp->size == &memory[temp->next]) {
-
+         
          temp->size += ((free_header_t *)&memory[temp->next])->size;
          temp->next = ((free_header_t *)&memory[temp->next])->next;
          vaddr_t prev = determine_index(temp);
@@ -324,8 +323,8 @@ static void vlad_merge()
 // Precondition: allocator memory was once allocated by vlad_init()
 // Postcondition: allocator is unusable until vlad_int() executed again
 
-void vlad_end(void)
-{
+void vlad_end(void) {
+   
    assert(memory!=NULL);
    assert(memory_size!=0);
    free(memory);
@@ -352,10 +351,10 @@ void vlad_stats(void)
          count=0;
       }
    }
-   return;
 
 }
 
+// figure out size of request for malloc
 static u_int32_t determine_size (u_int32_t n) {
    u_int32_t size = n+ALLOC_HEADER_SIZE;
    vsize_t mod = size%4;
@@ -366,6 +365,7 @@ static u_int32_t determine_size (u_int32_t n) {
    return size;
 }
 
+// change the memory position of the free-header and change pointers
 static void change_free_header (free_header_t *head,vsize_t size, 
    vlink_t next, vlink_t prev) {
       
@@ -376,6 +376,7 @@ static void change_free_header (free_header_t *head,vsize_t size,
    freehead->prev = prev;
 }
 
+// make sure no corruptions have occurred in memory re-allocs
 static void check_corruption(free_header_t * f) {    
    if (f->magic != MAGIC_FREE) {
       fprintf(stderr, "vald_alloc: Memory corruption\n");
@@ -383,6 +384,7 @@ static void check_corruption(free_header_t * f) {
    }
 }
 
+// adjust alloc header/ free headers
 static void change_alloc_header(alloc_header_t * head, vsize_t size) {
    free_header_t * temp = (free_header_t *)head;
    temp->prev = temp->next = temp->size = 0;
